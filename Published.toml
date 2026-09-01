@@ -3,19 +3,17 @@
 # This file SHOULD be committed to source control
 
 [published.mainnet]
-chain-id = "35834a8a"
-published-at = "0xda970ab921b4edaabee40a04c3c73204e3eab88a14bfc310e79220a4506eb6b8"
-original-id = "0xda970ab921b4edaabee40a04c3c73204e3eab88a14bfc310e79220a4506eb6b8"
+chain-id = "4btiuiMPvEENsttpZC7CZ53DruC3MAgfznDbASZ7DR6S"
+published-at = "0x59b4ffcd0d3d3563cafa66f54f8de2f481d5186e1505bd44aff195fd72995d64"
+original-id = "0x59b4ffcd0d3d3563cafa66f54f8de2f481d5186e1505bd44aff195fd72995d64"
 version = 1
-toolchain-version = "1.75.1"
+toolchain-version = "1.78.1"
 build-config = { flavor = "sui", edition = "2024" }
-upgrade-capability = "0x3ff7a71354fd3b9c8f0be1fac23ceff2085bffebd356d35641c61461db942b47"
 
 [published.testnet]
-chain-id = "4c78adac"
-published-at = "0x111312c49b8a93532282f8eccddfa7bc2cc9f4545512c01e28ebfc1899097a77"
-original-id = "0x111312c49b8a93532282f8eccddfa7bc2cc9f4545512c01e28ebfc1899097a77"
+chain-id = "69WiPg3DAQiwdxfncX6wYQ2siKwAe6L9BZthQea3JNMD"
+published-at = "0xd15783a6a4c6928f4381551c700e99838c4064aa9e32ee46f5065845ecc721eb"
+original-id = "0xd15783a6a4c6928f4381551c700e99838c4064aa9e32ee46f5065845ecc721eb"
 version = 1
-toolchain-version = "1.64.1"
+toolchain-version = "1.78.1"
 build-config = { flavor = "sui", edition = "2024" }
-upgrade-capability = "0xa7e766d13c33030a375a9c9780f333aaf5ccf4ebb8489a4ec26ca5761af71d1b"
