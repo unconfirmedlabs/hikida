@@ -57,7 +57,7 @@ error, not a hikida one. Downstream inherits this either way.
 re-authentication and the accumulator-native balance enforcement (verified at
 the pinned rev; re-verify on framework change).
 
-## Addendum — 2026-09-09 (unpublished revision, toolchain sui 1.78.1)
+## Addendum — 2026-09-09 (mainnet `0x2ccb0ff5…`, testnet `0xc69d1186…`; toolchain sui 1.78.1)
 
 Changes since `e88c6fa`, reviewed against the same framework primitives:
 

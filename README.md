@@ -85,8 +85,12 @@ Both deployments are immutable.
 
 | Network | Package ID | Transaction digest |
 | --- | --- | --- |
-| Mainnet | `0x59b4ffcd0d3d3563cafa66f54f8de2f481d5186e1505bd44aff195fd72995d64` | `8MWTjJUaTCRvHosLjmVMRcMMCsxkLiGCNp1eaShbhwZx` |
-| Testnet | `0xd15783a6a4c6928f4381551c700e99838c4064aa9e32ee46f5065845ecc721eb` | `9ZWaKTf3ofEBcszNqoVbRcC81ahivuEAzQvAd1poed7P` |
+| Mainnet | `0x2ccb0ff53146ac5830f92c0c9f8e5260160705e1f15c7f6606340a1c94c2ab98` | `5dyLd1SSK5x6UHFEZEAgiJKTdtrKtriby71zfQ4sK6Q7` |
+| Testnet | `0xc69d11860ccfbe50b558b15e8c026735995274d09e19c66c43c0870e6df79f3e` | `6nG9XBDNagBZtLVcqyXvgckJY47GACnbq8KjznEanrn2` |
+
+Previous generation (four-function API, aborts on empty/zero): mainnet
+`0x59b4ffcd…`, testnet `0xd15783a6…`; still immutable and usable by packages
+that pin it.
 
 **Note:** `redeem_*` depends on the `enable_object_funds_withdraw` protocol
 flag; on networks where it is disabled they abort with the framework's error.
