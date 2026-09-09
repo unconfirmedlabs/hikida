@@ -56,3 +56,46 @@ error, not a hikida one. Downstream inherits this either way.
 **Load-bearing assumptions:** framework `public_receive` ownership
 re-authentication and the accumulator-native balance enforcement (verified at
 the pinned rev; re-verify on framework change).
+
+## Addendum — 2026-09-09 (unpublished revision, toolchain sui 1.78.1)
+
+Changes since `e88c6fa`, reviewed against the same framework primitives:
+
+- **Total API.** Both error codes removed. `receive_coins_as_balance` returns
+  `balance::zero()` on an empty vector; `redeem_balance` returns
+  `balance::zero()` on `value == 0` without calling
+  `withdraw_funds_from_object`. Precedent: `balance::withdraw_all`,
+  `pay::join_vec` over an empty vector. No privilege change: an empty receive
+  touches no object, and a zero redeem never reaches the accumulator native.
+- **Naming by source; funds out.** `receive_*` takes coin objects, `redeem_*`
+  takes accumulated funds, and outgoing value leaves only as accumulator
+  funds — there is deliberately no coin-object delivery helper.
+  `receive_balance` / `receive_coin` replaced by `receive_coins_as_balance`
+  (takes many coin objects, returns one balance; `.into_coin(ctx)` at the
+  caller).
+- **`redeem_coin` removed** — `redeem_balance(...).into_coin(ctx)` at the caller.
+- **`redeem_balance_and_send_funds(parent, value, recipient): u64`** —
+  `redeem_balance_impl` then `balance::send_funds(recipient)`; zero forwards
+  nothing. Same privilege analysis as the receive variant below.
+- **`receive_coins_and_send_funds(parent, coins, recipient): u64`** —
+  `receive_balance_impl` then `balance::send_funds(recipient)`; zero received
+  destroys the zero balance and forwards nothing. The recipient is a caller
+  argument; a caller holding `&mut UID` could already receive and send
+  anywhere, so no new capability is introduced.
+- **Testnet pin** in `Move.lock` moved from framework `563c158` (no longer
+  served by GitHub) to `2a0becb`, the revision the dependent generation uses.
+
+- **Settled trio.** `settled_balance_value(&UID, &AccumulatorRoot)` wraps
+  `balance::settled_funds_value` keyed by the object's address;
+  `redeem_settled_balance` / `redeem_settled_balance_and_send_funds` read it
+  and reuse the exact-amount paths. The framework caps the read at
+  `u64::MAX`, so an oversized accumulator drains in slices. No new privilege:
+  the read is public framework state and the redeem is the audited path.
+  The unit VM never runs settlement, so tests pin only the zero path; the
+  positive path was observed on localnet (see misofm/royalty-pool
+  `AUDIT.md`, 2026-09-07) and must be re-checked on a network after publish.
+
+**Verification:** 15/15 tests (`sui move test -e testnet`): the new
+total/no-op cases, a forward-to-self round trip (receive → accumulator →
+redeem), and all previous cases;
+`sui move build --lint --test -e testnet` warning-clean.
