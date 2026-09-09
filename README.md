@@ -1,8 +1,9 @@
 # hikida
 
 Thin, audited helpers for receiving coins sent to Sui object addresses and
-withdrawing object-accumulated funds — batch `Receiving<Coin>` handling and
-`redeem_funds(withdraw_funds_from_object(...))` in four one-liner wrappers.
+withdrawing object-accumulated funds — batch `Receiving<Coin>` handling,
+forwarding received value onward, and
+`redeem_funds(withdraw_funds_from_object(...))` in six small wrappers.
 
 ## Why
 
@@ -22,16 +23,23 @@ has mutable access to the object can pull funds into or out of it.
 | Function | Description |
 | --- | --- |
 | `receive_balance<Currency>(parent, coins): Balance<Currency>` | Batch-receive a vector of `Receiving<Coin<Currency>>` tickets into `parent`, joined into a single balance. |
-| `receive_coin<Currency>(parent, coins, ctx): Coin<Currency>` | Same, returned as a `Coin`. |
+| `receive_coins<Currency>(parent, coins, ctx): Coin<Currency>` | Same, returned as a `Coin`. |
+| `receive_balance_and_transfer<Currency>(parent, coins, recipient): u64` | Receive the tickets and forward the combined value to `recipient`'s funds accumulator (`balance::send_funds`). Returns the value forwarded. |
+| `receive_coins_and_transfer<Currency>(parent, coins, recipient, ctx): u64` | Receive the tickets, merge into one `Coin`, and transfer that coin object to `recipient`. Returns the value transferred. |
 | `redeem_balance<Currency>(parent, value): Balance<Currency>` | Withdraw `value` of `Currency` accumulated on the object's address (`withdraw_funds_from_object` + `redeem_funds`). |
 | `redeem_coin<Currency>(parent, value, ctx): Coin<Currency>` | Same, returned as a `Coin`. |
 
-### Errors
+### Every function is total
 
-| Code | Constant | Condition |
-| --- | --- | --- |
-| 0 | `ENoCoinsToReceive` | `coins` vector is empty. |
-| 1 | `ENoValueToRedeem` | `value` is zero. |
+There are no error codes. Receiving no coins returns a zero balance or zero
+coin; redeeming zero returns a zero balance or zero coin without touching the
+accumulator; forwarding nothing forwards nothing and returns 0. Callers that
+want strictness assert on the returned value. This matches the framework's own
+value-returning primitives (`balance::withdraw_all`, `pay::join_vec` over an
+empty vector, `balance::zero`, `coin::zero`), which are total and reserve
+aborts for malformed arguments. The only aborts you can hit come from the
+framework itself: a `Receiving` ticket for an object the parent does not own,
+or a withdrawal larger than the accumulated balance.
 
 ## Usage
 
@@ -52,6 +60,12 @@ let balance = hikida::receive_balance<SUI>(object.uid_mut(), receiving_tickets);
 
 // Withdraw funds accumulated on the object's address:
 let coin = hikida::redeem_coin<SUI>(object.uid_mut(), amount, ctx);
+
+// Convert coins stuck at an object's address into accumulator funds at that
+// same address, so canonical accumulator logic can take over:
+let forwarded = hikida::receive_balance_and_transfer<SUI>(
+    object.uid_mut(), receiving_tickets, object.uid().to_address(),
+);
 ```
 
 ## Published packages
@@ -69,15 +83,16 @@ flag; on networks where it is disabled they abort with the framework's error.
 ## Security
 
 Independently audited 2026-08-22 (revision `e88c6fa`, toolchain sui 1.77.2):
-**no issues found.** See [AUDIT.md](AUDIT.md) for the full report. The
-wrappers add no privilege beyond what the framework's `public_receive` and
-funds-withdrawal natives already enforce.
+**no issues found.** See [AUDIT.md](AUDIT.md) for the full report and the
+2026-09-09 addendum covering the total API and the two forwarding functions.
+The wrappers add no privilege beyond what the framework's `public_receive`,
+`public_transfer`, `send_funds`, and funds-withdrawal natives already enforce.
 
 ## Development
 
 ```sh
 sui move build          # build
-sui move test           # run the test suite (9 tests)
+sui move test           # run the test suite (15 tests)
 sui move build --lint   # lint
 ```
 

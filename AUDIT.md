@@ -56,3 +56,30 @@ error, not a hikida one. Downstream inherits this either way.
 **Load-bearing assumptions:** framework `public_receive` ownership
 re-authentication and the accumulator-native balance enforcement (verified at
 the pinned rev; re-verify on framework change).
+
+## Addendum — 2026-09-09 (unpublished revision, toolchain sui 1.78.1)
+
+Changes since `e88c6fa`, reviewed against the same framework primitives:
+
+- **Total API.** Both error codes removed. `receive_balance` / `receive_coins`
+  return `balance::zero()` / `coin::zero(ctx)` on an empty vector;
+  `redeem_balance` / `redeem_coin` return zero on `value == 0` without calling
+  `withdraw_funds_from_object`. Precedent: `balance::withdraw_all`,
+  `pay::join_vec` over an empty vector. No privilege change: an empty receive
+  touches no object, and a zero redeem never reaches the accumulator native.
+- **`receive_coin` renamed `receive_coins`** (takes many, returns one).
+- **`receive_balance_and_transfer(parent, coins, recipient): u64`** —
+  `receive_balance_impl` then `balance::send_funds(recipient)`; zero received
+  destroys the zero balance and forwards nothing. The recipient is a caller
+  argument; a caller holding `&mut UID` could already receive and send
+  anywhere, so no new capability is introduced.
+- **`receive_coins_and_transfer(parent, coins, recipient, ctx): u64`** — same,
+  delivering one merged `Coin` via `transfer::public_transfer`; zero received
+  creates no object. `public_transfer` is permitted because `Coin` has `store`.
+- **Testnet pin** in `Move.lock` moved from framework `563c158` (no longer
+  served by GitHub) to `2a0becb`, the revision the dependent generation uses.
+
+**Verification:** 15/15 tests (`sui move test -e testnet`): the six new
+total/no-op cases, a forward-to-self round trip (receive → accumulator →
+redeem), a forward-to-recipient delivery, and all previous cases;
+`sui move build --lint --test -e testnet` warning-clean.
