@@ -61,16 +61,18 @@ the pinned rev; re-verify on framework change).
 
 Changes since `e88c6fa`, reviewed against the same framework primitives:
 
-- **Total API.** Both error codes removed. `receive_coins` returns
-  `coin::zero(ctx)` on an empty vector; `redeem_balance` returns
+- **Total API.** Both error codes removed. `receive_coins_as_balance` returns
+  `balance::zero()` on an empty vector; `redeem_balance` returns
   `balance::zero()` on `value == 0` without calling
   `withdraw_funds_from_object`. Precedent: `balance::withdraw_all`,
   `pay::join_vec` over an empty vector. No privilege change: an empty receive
   touches no object, and a zero redeem never reaches the accumulator native.
 - **Naming by source; funds out.** `receive_*` takes coin objects, `redeem_*`
   takes accumulated funds, and outgoing value leaves only as accumulator
-  funds — there is deliberately no coin-object delivery helper. `receive_coin` renamed `receive_coins` (takes many,
-  returns one); `receive_balance` removed (`receive_coins(...).into_balance()`).
+  funds — there is deliberately no coin-object delivery helper.
+  `receive_balance` / `receive_coin` replaced by `receive_coins_as_balance`
+  (takes many coin objects, returns one balance; `.into_coin(ctx)` at the
+  caller).
 - **`redeem_coin` removed** — `redeem_balance(...).into_coin(ctx)` at the caller.
 - **`redeem_balance_and_send_funds(parent, value, recipient): u64`** —
   `redeem_balance_impl` then `balance::send_funds(recipient)`; zero forwards
@@ -83,7 +85,7 @@ Changes since `e88c6fa`, reviewed against the same framework primitives:
 - **Testnet pin** in `Move.lock` moved from framework `563c158` (no longer
   served by GitHub) to `2a0becb`, the revision the dependent generation uses.
 
-**Verification:** 13/13 tests (`sui move test -e testnet`): the new
+**Verification:** 12/12 tests (`sui move test -e testnet`): the new
 total/no-op cases, a forward-to-self round trip (receive → accumulator →
 redeem), and all previous cases;
 `sui move build --lint --test -e testnet` warning-clean.

@@ -7,14 +7,13 @@
 /// Outgoing value always leaves as accumulator funds (`send_funds`), never
 /// as a coin object.
 ///
-/// Every function is total. Receiving no coins yields a zero coin; redeeming
-/// zero yields a zero balance without touching the accumulator; forwarding
-/// nothing forwards nothing and returns 0. A caller that wants strictness
-/// asserts on the returned value. This follows
-/// the framework's own value-returning primitives (`balance::withdraw_all`,
-/// `pay::join_vec` over an empty vector, `balance::zero`, `coin::zero`),
-/// which are total, and reserves aborts for malformed arguments, of which
-/// this module has none.
+/// Every function is total. Receiving no coins yields a zero balance;
+/// redeeming zero yields a zero balance without touching the accumulator;
+/// forwarding nothing forwards nothing and returns 0. A caller that wants
+/// strictness asserts on the returned value. This follows the framework's
+/// own value-returning primitives (`balance::withdraw_all`, `pay::join_vec`
+/// over an empty vector, `balance::zero`), which are total, and reserves
+/// aborts for malformed arguments, of which this module has none.
 module hikida::hikida;
 
 use sui::balance::{Self, Balance, redeem_funds, withdraw_funds_from_object};
@@ -24,13 +23,12 @@ use sui::transfer::{Receiving, public_receive};
 //=== Public Functions ===
 
 /// Receive every `Coin<Currency>` in `coins` into `parent` and return their
-/// combined value as one coin. Empty `coins` returns a zero coin.
-public fun receive_coins<Currency>(
+/// combined value as one balance. Empty `coins` returns a zero balance.
+public fun receive_coins_as_balance<Currency>(
     parent: &mut UID,
     coins: vector<Receiving<Coin<Currency>>>,
-    ctx: &mut TxContext,
-): Coin<Currency> {
-    receive_balance_impl(parent, coins).into_coin(ctx)
+): Balance<Currency> {
+    receive_balance_impl(parent, coins)
 }
 
 /// Receive every coin in `coins` into `parent` and forward the combined
