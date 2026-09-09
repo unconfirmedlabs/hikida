@@ -3,9 +3,10 @@
 Thin, audited helpers for receiving coins sent to Sui object addresses and
 withdrawing object-accumulated funds — batch `Receiving<Coin>` handling,
 forwarding received value onward, and
-`redeem_funds(withdraw_funds_from_object(...))` in five small wrappers. The
+`redeem_funds(withdraw_funds_from_object(...))` in four small wrappers. The
 verb names the source: `receive_*` takes `Coin` objects sent to the object,
-`redeem_*` takes funds accumulated on its address.
+`redeem_*` takes funds accumulated on its address. Outgoing value always
+leaves as accumulator funds (`balance::send_funds`), never as a coin object.
 
 ## Why
 
@@ -26,7 +27,6 @@ has mutable access to the object can pull funds into or out of it.
 | --- | --- |
 | `receive_coins<Currency>(parent, coins, ctx): Coin<Currency>` | Batch-receive a vector of `Receiving<Coin<Currency>>` tickets into `parent`, merged into one `Coin` (call `.into_balance()` for a `Balance`). |
 | `receive_coins_and_send_funds<Currency>(parent, coins, recipient): u64` | Receive the tickets and forward the combined value to `recipient`'s funds accumulator (`balance::send_funds`). Returns the value forwarded. |
-| `receive_coins_and_transfer<Currency>(parent, coins, recipient, ctx): u64` | Receive the tickets, merge into one `Coin`, and transfer that coin object to `recipient`. Returns the value transferred. |
 | `redeem_balance<Currency>(parent, value): Balance<Currency>` | Withdraw `value` of `Currency` accumulated on the object's address (`withdraw_funds_from_object` + `redeem_funds`). |
 | `redeem_coin<Currency>(parent, value, ctx): Coin<Currency>` | Same, returned as a `Coin`. |
 
@@ -87,7 +87,7 @@ Independently audited 2026-08-22 (revision `e88c6fa`, toolchain sui 1.77.2):
 **no issues found.** See [AUDIT.md](AUDIT.md) for the full report and the
 2026-09-09 addendum covering the total API and the two forwarding functions.
 The wrappers add no privilege beyond what the framework's `public_receive`,
-`public_transfer`, `send_funds`, and funds-withdrawal natives already enforce.
+`send_funds`, and funds-withdrawal natives already enforce.
 
 ## Development
 

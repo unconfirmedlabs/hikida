@@ -67,21 +67,19 @@ Changes since `e88c6fa`, reviewed against the same framework primitives:
   `withdraw_funds_from_object`. Precedent: `balance::withdraw_all`,
   `pay::join_vec` over an empty vector. No privilege change: an empty receive
   touches no object, and a zero redeem never reaches the accumulator native.
-- **Naming by source.** `receive_*` takes coin objects, `redeem_*` takes
-  accumulated funds. `receive_coin` renamed `receive_coins` (takes many,
+- **Naming by source; funds out.** `receive_*` takes coin objects, `redeem_*`
+  takes accumulated funds, and outgoing value leaves only as accumulator
+  funds — there is deliberately no coin-object delivery helper. `receive_coin` renamed `receive_coins` (takes many,
   returns one); `receive_balance` removed (`receive_coins(...).into_balance()`).
 - **`receive_coins_and_send_funds(parent, coins, recipient): u64`** —
   `receive_balance_impl` then `balance::send_funds(recipient)`; zero received
   destroys the zero balance and forwards nothing. The recipient is a caller
   argument; a caller holding `&mut UID` could already receive and send
   anywhere, so no new capability is introduced.
-- **`receive_coins_and_transfer(parent, coins, recipient, ctx): u64`** — same,
-  delivering one merged `Coin` via `transfer::public_transfer`; zero received
-  creates no object. `public_transfer` is permitted because `Coin` has `store`.
 - **Testnet pin** in `Move.lock` moved from framework `563c158` (no longer
   served by GitHub) to `2a0becb`, the revision the dependent generation uses.
 
-**Verification:** 15/15 tests (`sui move test -e testnet`): the six new
+**Verification:** 13/13 tests (`sui move test -e testnet`): the new
 total/no-op cases, a forward-to-self round trip (receive → accumulator →
-redeem), a forward-to-recipient delivery, and all previous cases;
+redeem), and all previous cases;
 `sui move build --lint --test -e testnet` warning-clean.

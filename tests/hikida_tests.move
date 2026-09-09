@@ -183,55 +183,6 @@ fun receive_coins_and_send_funds_empty_is_noop() {
     scenario.end();
 }
 
-/// Coins sent to the vault are received, merged, and handed to `RECIPIENT`
-/// as one coin object.
-#[test]
-fun receive_coins_and_transfer_delivers_one_coin() {
-    let mut scenario = test_scenario::begin(OWNER);
-    let vault_id = setup(&mut scenario);
-    let vault_addr = vault_id.to_address();
-
-    scenario.next_tx(OWNER);
-    let id1 = send_coin(&mut scenario, vault_addr, 7);
-    let id2 = send_coin(&mut scenario, vault_addr, 8);
-
-    scenario.next_tx(OWNER);
-    {
-        let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
-        let tickets = vector[
-            test_scenario::receiving_ticket_by_id<Coin<SUI>>(id1),
-            test_scenario::receiving_ticket_by_id<Coin<SUI>>(id2),
-        ];
-        let sent = hikida::receive_coins_and_transfer(&mut vault.id, tickets, RECIPIENT, scenario.ctx());
-        assert_eq!(sent, 15);
-        scenario.return_to_sender(vault);
-    };
-
-    scenario.next_tx(RECIPIENT);
-    let coin = scenario.take_from_sender<Coin<SUI>>();
-    assert_eq!(coin.value(), 15);
-    coin.burn_for_testing();
-    scenario.end();
-}
-
-#[test]
-fun receive_coins_and_transfer_empty_creates_nothing() {
-    let mut scenario = test_scenario::begin(OWNER);
-    let vault_id = setup(&mut scenario);
-
-    scenario.next_tx(OWNER);
-    {
-        let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
-        let tickets: vector<Receiving<Coin<SUI>>> = vector[];
-        assert_eq!(hikida::receive_coins_and_transfer(&mut vault.id, tickets, RECIPIENT, scenario.ctx()), 0);
-        scenario.return_to_sender(vault);
-    };
-
-    scenario.next_tx(RECIPIENT);
-    assert!(!scenario.has_most_recent_for_sender<Coin<SUI>>());
-    scenario.end();
-}
-
 #[test]
 fun redeem_balance_partial() {
     let mut scenario = test_scenario::begin(OWNER);

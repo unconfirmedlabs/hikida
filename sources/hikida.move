@@ -4,6 +4,8 @@
 /// Thin helpers for moving value between an object's address and Move
 /// values. The verb names the source: `receive_*` takes `Coin` objects sent
 /// to the object, `redeem_*` takes funds accumulated on its address.
+/// Outgoing value always leaves as accumulator funds (`send_funds`), never
+/// as a coin object.
 ///
 /// Every function is total. Receiving no coins yields a zero balance or zero
 /// coin; redeeming zero yields a zero balance or zero coin without touching
@@ -46,25 +48,6 @@ public fun receive_coins_and_send_funds<Currency>(
         return 0
     };
     received.send_funds(recipient);
-    value
-}
-
-/// Receive every coin in `coins` into `parent`, merge them into one `Coin`,
-/// and transfer that coin object to `recipient`. Returns the value
-/// transferred. Empty `coins` creates and transfers nothing and returns 0.
-public fun receive_coins_and_transfer<Currency>(
-    parent: &mut UID,
-    coins: vector<Receiving<Coin<Currency>>>,
-    recipient: address,
-    ctx: &mut TxContext,
-): u64 {
-    let received = receive_balance_impl(parent, coins);
-    let value = received.value();
-    if (value == 0) {
-        received.destroy_zero();
-        return 0
-    };
-    transfer::public_transfer(received.into_coin(ctx), recipient);
     value
 }
 
