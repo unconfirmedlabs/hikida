@@ -62,8 +62,8 @@ the pinned rev; re-verify on framework change).
 Changes since `e88c6fa`, reviewed against the same framework primitives:
 
 - **Total API.** Both error codes removed. `receive_coins` returns
-  `coin::zero(ctx)` on an empty vector;
-  `redeem_balance` / `redeem_coin` return zero on `value == 0` without calling
+  `coin::zero(ctx)` on an empty vector; `redeem_balance` returns
+  `balance::zero()` on `value == 0` without calling
   `withdraw_funds_from_object`. Precedent: `balance::withdraw_all`,
   `pay::join_vec` over an empty vector. No privilege change: an empty receive
   touches no object, and a zero redeem never reaches the accumulator native.
@@ -71,6 +71,10 @@ Changes since `e88c6fa`, reviewed against the same framework primitives:
   takes accumulated funds, and outgoing value leaves only as accumulator
   funds — there is deliberately no coin-object delivery helper. `receive_coin` renamed `receive_coins` (takes many,
   returns one); `receive_balance` removed (`receive_coins(...).into_balance()`).
+- **`redeem_coin` removed** — `redeem_balance(...).into_coin(ctx)` at the caller.
+- **`redeem_balance_and_send_funds(parent, value, recipient): u64`** —
+  `redeem_balance_impl` then `balance::send_funds(recipient)`; zero forwards
+  nothing. Same privilege analysis as the receive variant below.
 - **`receive_coins_and_send_funds(parent, coins, recipient): u64`** —
   `receive_balance_impl` then `balance::send_funds(recipient)`; zero received
   destroys the zero balance and forwards nothing. The recipient is a caller

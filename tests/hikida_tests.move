@@ -218,23 +218,6 @@ fun redeem_balance_full() {
     scenario.end();
 }
 
-#[test]
-fun redeem_coin_partial() {
-    let mut scenario = test_scenario::begin(OWNER);
-    let vault_id = setup(&mut scenario);
-    let vault_addr = vault_id.to_address();
-
-    balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
-
-    scenario.next_tx(OWNER);
-    let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
-    let coin = hikida::redeem_coin<SUI>(&mut vault.id, 25, scenario.ctx());
-    assert_eq!(coin.value(), 25);
-    coin.burn_for_testing();
-    scenario.return_to_sender(vault);
-    scenario.end();
-}
-
 /// Zero is answered without touching the accumulator: the vault has no
 /// funds at all, and the call still succeeds with a zero balance.
 #[test]
@@ -251,16 +234,46 @@ fun redeem_balance_zero_value_is_zero() {
     scenario.end();
 }
 
+/// Funds accumulated on the vault are redeemed and forwarded to another
+/// object's address; that object can then redeem them.
 #[test]
-fun redeem_coin_zero_value_is_zero_coin() {
+fun redeem_balance_and_send_funds_forwards() {
+    let mut scenario = test_scenario::begin(OWNER);
+    let vault_id = setup(&mut scenario);
+    let vault_addr = vault_id.to_address();
+
+    // A second vault, whose address stands in for the recipient.
+    let sink = Vault { id: object::new(scenario.ctx()) };
+    let sink_id = object::id(&sink);
+    let sink_addr = sink_id.to_address();
+    transfer::public_transfer(sink, OWNER);
+
+    balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
+
+    scenario.next_tx(OWNER);
+    {
+        let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
+        assert_eq!(hikida::redeem_balance_and_send_funds<SUI>(&mut vault.id, 60, sink_addr), 60);
+        scenario.return_to_sender(vault);
+    };
+
+    scenario.next_tx(OWNER);
+    let mut sink = scenario.take_from_sender_by_id<Vault>(sink_id);
+    let balance = hikida::redeem_balance<SUI>(&mut sink.id, 60);
+    assert_eq!(balance.value(), 60);
+    balance::destroy_for_testing(balance);
+    scenario.return_to_sender(sink);
+    scenario.end();
+}
+
+#[test]
+fun redeem_balance_and_send_funds_zero_is_noop() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
 
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
-    let coin = hikida::redeem_coin<SUI>(&mut vault.id, 0, scenario.ctx());
-    assert_eq!(coin.value(), 0);
-    coin.destroy_zero();
+    assert_eq!(hikida::redeem_balance_and_send_funds<SUI>(&mut vault.id, 0, RECIPIENT), 0);
     scenario.return_to_sender(vault);
     scenario.end();
 }
@@ -280,7 +293,7 @@ fun redeem_then_receive_round_trip() {
     let coin_id;
     {
         let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
-        let coin = hikida::redeem_coin<SUI>(&mut vault.id, 100, scenario.ctx());
+        let coin = hikida::redeem_balance<SUI>(&mut vault.id, 100).into_coin(scenario.ctx());
         coin_id = object::id(&coin);
         transfer::public_transfer(coin, vault_addr);
         scenario.return_to_sender(vault);

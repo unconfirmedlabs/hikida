@@ -27,14 +27,14 @@ has mutable access to the object can pull funds into or out of it.
 | --- | --- |
 | `receive_coins<Currency>(parent, coins, ctx): Coin<Currency>` | Batch-receive a vector of `Receiving<Coin<Currency>>` tickets into `parent`, merged into one `Coin` (call `.into_balance()` for a `Balance`). |
 | `receive_coins_and_send_funds<Currency>(parent, coins, recipient): u64` | Receive the tickets and forward the combined value to `recipient`'s funds accumulator (`balance::send_funds`). Returns the value forwarded. |
-| `redeem_balance<Currency>(parent, value): Balance<Currency>` | Withdraw `value` of `Currency` accumulated on the object's address (`withdraw_funds_from_object` + `redeem_funds`). |
-| `redeem_coin<Currency>(parent, value, ctx): Coin<Currency>` | Same, returned as a `Coin`. |
+| `redeem_balance<Currency>(parent, value): Balance<Currency>` | Withdraw `value` of `Currency` accumulated on the object's address (`withdraw_funds_from_object` + `redeem_funds`). Call `.into_coin(ctx)` for a `Coin`. |
+| `redeem_balance_and_send_funds<Currency>(parent, value, recipient): u64` | Withdraw `value` and forward it to `recipient`'s funds accumulator. Returns the value forwarded. |
 
 ### Every function is total
 
 There are no error codes. Receiving no coins returns a zero coin; redeeming
-zero returns a zero balance or zero coin without touching the accumulator;
-forwarding nothing forwards nothing and returns 0. Callers that
+zero returns a zero balance without touching the accumulator; forwarding
+nothing forwards nothing and returns 0. Callers that
 want strictness assert on the returned value. This matches the framework's own
 value-returning primitives (`balance::withdraw_all`, `pay::join_vec` over an
 empty vector, `balance::zero`, `coin::zero`), which are total and reserve
@@ -60,7 +60,10 @@ use hikida::hikida;
 let coin = hikida::receive_coins<SUI>(object.uid_mut(), receiving_tickets, ctx);
 
 // Withdraw funds accumulated on the object's address:
-let coin = hikida::redeem_coin<SUI>(object.uid_mut(), amount, ctx);
+let coin = hikida::redeem_balance<SUI>(object.uid_mut(), amount).into_coin(ctx);
+
+// Forward accumulated funds to another address's accumulator:
+let sent = hikida::redeem_balance_and_send_funds<SUI>(object.uid_mut(), amount, recipient);
 
 // Convert coins stuck at an object's address into accumulator funds at that
 // same address, so canonical accumulator logic can take over:
@@ -93,7 +96,7 @@ The wrappers add no privilege beyond what the framework's `public_receive`,
 
 ```sh
 sui move build          # build
-sui move test           # run the test suite (15 tests)
+sui move test           # run the test suite (13 tests)
 sui move build --lint   # lint
 ```
 

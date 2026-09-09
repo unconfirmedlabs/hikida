@@ -7,10 +7,10 @@
 /// Outgoing value always leaves as accumulator funds (`send_funds`), never
 /// as a coin object.
 ///
-/// Every function is total. Receiving no coins yields a zero balance or zero
-/// coin; redeeming zero yields a zero balance or zero coin without touching
-/// the accumulator; forwarding nothing forwards nothing and returns 0. A
-/// caller that wants strictness asserts on the returned value. This follows
+/// Every function is total. Receiving no coins yields a zero coin; redeeming
+/// zero yields a zero balance without touching the accumulator; forwarding
+/// nothing forwards nothing and returns 0. A caller that wants strictness
+/// asserts on the returned value. This follows
 /// the framework's own value-returning primitives (`balance::withdraw_all`,
 /// `pay::join_vec` over an empty vector, `balance::zero`, `coin::zero`),
 /// which are total, and reserves aborts for malformed arguments, of which
@@ -18,7 +18,7 @@
 module hikida::hikida;
 
 use sui::balance::{Self, Balance, redeem_funds, withdraw_funds_from_object};
-use sui::coin::{Self, Coin};
+use sui::coin::Coin;
 use sui::transfer::{Receiving, public_receive};
 
 //=== Public Functions ===
@@ -57,13 +57,17 @@ public fun redeem_balance<Currency>(parent: &mut UID, value: u64): Balance<Curre
     redeem_balance_impl<Currency>(parent, value)
 }
 
-/// Same as `redeem_balance`, returned as a `Coin`. Zero returns a zero coin.
-public fun redeem_coin<Currency>(
+/// Withdraw `value` of `Currency` accumulated on `parent`'s address and
+/// forward it to `recipient`'s funds accumulator. Returns the value
+/// forwarded. Zero forwards nothing and returns 0.
+public fun redeem_balance_and_send_funds<Currency>(
     parent: &mut UID,
     value: u64,
-    ctx: &mut TxContext,
-): Coin<Currency> {
-    redeem_balance_impl<Currency>(parent, value).into_coin(ctx)
+    recipient: address,
+): u64 {
+    if (value == 0) return 0;
+    redeem_balance_impl<Currency>(parent, value).send_funds(recipient);
+    value
 }
 
 //=== Private Functions ===
