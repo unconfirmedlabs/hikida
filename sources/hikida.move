@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 /// Thin helpers for moving value between an object's address and Move
-/// values: batch-receive `Coin` objects sent to the object, and redeem funds
-/// accumulated on its address.
+/// values. The verb names the source: `receive_*` takes `Coin` objects sent
+/// to the object, `redeem_*` takes funds accumulated on its address.
 ///
 /// Every function is total. Receiving no coins yields a zero balance or zero
 /// coin; redeeming zero yields a zero balance or zero coin without touching
@@ -22,16 +22,7 @@ use sui::transfer::{Receiving, public_receive};
 //=== Public Functions ===
 
 /// Receive every `Coin<Currency>` in `coins` into `parent` and return their
-/// combined value as one balance. Empty `coins` returns a zero balance.
-public fun receive_balance<Currency>(
-    parent: &mut UID,
-    coins: vector<Receiving<Coin<Currency>>>,
-): Balance<Currency> {
-    receive_balance_impl(parent, coins)
-}
-
-/// Same as `receive_balance`, returned as a `Coin`. Empty `coins` returns a
-/// zero coin.
+/// combined value as one coin. Empty `coins` returns a zero coin.
 public fun receive_coins<Currency>(
     parent: &mut UID,
     coins: vector<Receiving<Coin<Currency>>>,
@@ -43,7 +34,7 @@ public fun receive_coins<Currency>(
 /// Receive every coin in `coins` into `parent` and forward the combined
 /// value to `recipient`'s funds accumulator (`balance::send_funds`). Returns
 /// the value forwarded. Empty `coins` forwards nothing and returns 0.
-public fun receive_balance_and_transfer<Currency>(
+public fun receive_coins_and_send_funds<Currency>(
     parent: &mut UID,
     coins: vector<Receiving<Coin<Currency>>>,
     recipient: address,

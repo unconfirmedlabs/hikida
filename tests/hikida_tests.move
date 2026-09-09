@@ -45,7 +45,7 @@ fun send_coin(scenario: &mut Scenario, recipient: address, value: u64): ID {
 //=== Tests ===
 
 #[test]
-fun receive_balance_single_coin() {
+fun receive_coins_single_coin_as_balance() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
@@ -56,7 +56,7 @@ fun receive_balance_single_coin() {
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let ticket = test_scenario::receiving_ticket_by_id<Coin<SUI>>(coin_id);
-    let balance = hikida::receive_balance(&mut vault.id, vector[ticket]);
+    let balance = hikida::receive_coins(&mut vault.id, vector[ticket], scenario.ctx()).into_balance();
     assert_eq!(balance.value(), 100);
     balance::destroy_for_testing(balance);
     scenario.return_to_sender(vault);
@@ -64,7 +64,7 @@ fun receive_balance_single_coin() {
 }
 
 #[test]
-fun receive_balance_multiple_coins() {
+fun receive_coins_multiple_coins() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
@@ -81,7 +81,7 @@ fun receive_balance_multiple_coins() {
         test_scenario::receiving_ticket_by_id<Coin<SUI>>(id2),
         test_scenario::receiving_ticket_by_id<Coin<SUI>>(id3),
     ];
-    let balance = hikida::receive_balance(&mut vault.id, tickets);
+    let balance = hikida::receive_coins(&mut vault.id, tickets, scenario.ctx()).into_balance();
     assert_eq!(balance.value(), 60);
     balance::destroy_for_testing(balance);
     scenario.return_to_sender(vault);
@@ -108,14 +108,14 @@ fun receive_coins_single_coin() {
 }
 
 #[test]
-fun receive_balance_empty_vector_is_zero() {
+fun receive_coins_empty_vector_as_balance_is_zero() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
 
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let tickets: vector<Receiving<Coin<SUI>>> = vector[];
-    let balance = hikida::receive_balance(&mut vault.id, tickets);
+    let balance = hikida::receive_coins(&mut vault.id, tickets, scenario.ctx()).into_balance();
     assert_eq!(balance.value(), 0);
     balance.destroy_zero();
     scenario.return_to_sender(vault);
@@ -140,7 +140,7 @@ fun receive_coins_empty_vector_is_zero_coin() {
 /// Coins sent to the vault are received and forwarded to the vault's own
 /// accumulator; the next transaction can redeem them.
 #[test]
-fun receive_balance_and_transfer_to_self_round_trip() {
+fun receive_coins_and_send_funds_to_self_round_trip() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
@@ -156,7 +156,7 @@ fun receive_balance_and_transfer_to_self_round_trip() {
             test_scenario::receiving_ticket_by_id<Coin<SUI>>(id1),
             test_scenario::receiving_ticket_by_id<Coin<SUI>>(id2),
         ];
-        let forwarded = hikida::receive_balance_and_transfer(&mut vault.id, tickets, vault_addr);
+        let forwarded = hikida::receive_coins_and_send_funds(&mut vault.id, tickets, vault_addr);
         assert_eq!(forwarded, 40);
         scenario.return_to_sender(vault);
     };
@@ -171,14 +171,14 @@ fun receive_balance_and_transfer_to_self_round_trip() {
 }
 
 #[test]
-fun receive_balance_and_transfer_empty_is_noop() {
+fun receive_coins_and_send_funds_empty_is_noop() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
 
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let tickets: vector<Receiving<Coin<SUI>>> = vector[];
-    assert_eq!(hikida::receive_balance_and_transfer(&mut vault.id, tickets, RECIPIENT), 0);
+    assert_eq!(hikida::receive_coins_and_send_funds(&mut vault.id, tickets, RECIPIENT), 0);
     scenario.return_to_sender(vault);
     scenario.end();
 }
@@ -316,7 +316,7 @@ fun redeem_coin_zero_value_is_zero_coin() {
 
 /// Redeem accumulated funds from the vault address, turn them into a coin,
 /// send the coin to the vault address, then receive it back through
-/// `receive_balance`.
+/// `receive_coins`.
 #[test]
 fun redeem_then_receive_round_trip() {
     let mut scenario = test_scenario::begin(OWNER);
@@ -338,7 +338,7 @@ fun redeem_then_receive_round_trip() {
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let ticket = test_scenario::receiving_ticket_by_id<Coin<SUI>>(coin_id);
-    let balance = hikida::receive_balance(&mut vault.id, vector[ticket]);
+    let balance = hikida::receive_coins(&mut vault.id, vector[ticket], scenario.ctx()).into_balance();
     assert_eq!(balance.value(), 100);
     balance::destroy_for_testing(balance);
     scenario.return_to_sender(vault);
