@@ -85,7 +85,17 @@ Changes since `e88c6fa`, reviewed against the same framework primitives:
 - **Testnet pin** in `Move.lock` moved from framework `563c158` (no longer
   served by GitHub) to `2a0becb`, the revision the dependent generation uses.
 
-**Verification:** 12/12 tests (`sui move test -e testnet`): the new
+- **Settled trio.** `settled_balance_value(&UID, &AccumulatorRoot)` wraps
+  `balance::settled_funds_value` keyed by the object's address;
+  `redeem_settled_balance` / `redeem_settled_balance_and_send_funds` read it
+  and reuse the exact-amount paths. The framework caps the read at
+  `u64::MAX`, so an oversized accumulator drains in slices. No new privilege:
+  the read is public framework state and the redeem is the audited path.
+  The unit VM never runs settlement, so tests pin only the zero path; the
+  positive path was observed on localnet (see misofm/royalty-pool
+  `AUDIT.md`, 2026-09-07) and must be re-checked on a network after publish.
+
+**Verification:** 15/15 tests (`sui move test -e testnet`): the new
 total/no-op cases, a forward-to-self round trip (receive → accumulator →
 redeem), and all previous cases;
 `sui move build --lint --test -e testnet` warning-clean.

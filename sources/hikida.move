@@ -8,15 +8,17 @@
 /// as a coin object.
 ///
 /// Every function is total. Receiving no coins yields a zero balance;
-/// redeeming zero yields a zero balance without touching the accumulator;
-/// forwarding nothing forwards nothing and returns 0. A caller that wants
+/// redeeming zero, or redeeming settled funds when none have settled, yields
+/// a zero balance without touching the accumulator; forwarding nothing
+/// forwards nothing and returns 0. A caller that wants
 /// strictness asserts on the returned value. This follows the framework's
 /// own value-returning primitives (`balance::withdraw_all`, `pay::join_vec`
 /// over an empty vector, `balance::zero`), which are total, and reserves
 /// aborts for malformed arguments, of which this module has none.
 module hikida::hikida;
 
-use sui::balance::{Self, Balance, redeem_funds, withdraw_funds_from_object};
+use sui::accumulator::AccumulatorRoot;
+use sui::balance::{Self, Balance, redeem_funds, settled_funds_value, withdraw_funds_from_object};
 use sui::coin::Coin;
 use sui::transfer::{Receiving, public_receive};
 
@@ -66,6 +68,36 @@ public fun redeem_balance_and_send_funds<Currency>(
     if (value == 0) return 0;
     redeem_balance_impl<Currency>(parent, value).send_funds(recipient);
     value
+}
+
+/// Funds of `Currency` settled at `parent`'s address as of the start of the
+/// current consensus commit. Funds sent later in this commit are not yet
+/// visible; the framework caps the read at `u64::MAX`.
+public fun settled_balance_value<Currency>(parent: &UID, root: &AccumulatorRoot): u64 {
+    settled_funds_value<Currency>(root, parent.to_address())
+}
+
+/// Redeem everything settled at `parent`'s address. Zero settled returns a
+/// zero balance without touching the accumulator. More than `u64::MAX`
+/// drains in slices across commits.
+public fun redeem_settled_balance<Currency>(
+    parent: &mut UID,
+    root: &AccumulatorRoot,
+): Balance<Currency> {
+    let value = settled_balance_value<Currency>(parent, root);
+    redeem_balance_impl<Currency>(parent, value)
+}
+
+/// Redeem everything settled at `parent`'s address and forward it to
+/// `recipient`'s funds accumulator. Returns the value forwarded; zero settled
+/// forwards nothing and returns 0.
+public fun redeem_settled_balance_and_send_funds<Currency>(
+    parent: &mut UID,
+    root: &AccumulatorRoot,
+    recipient: address,
+): u64 {
+    let value = settled_balance_value<Currency>(parent, root);
+    redeem_balance_and_send_funds<Currency>(parent, value, recipient)
 }
 
 //=== Private Functions ===

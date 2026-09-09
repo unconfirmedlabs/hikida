@@ -6,6 +6,7 @@ module hikida::hikida_tests;
 
 use hikida::hikida;
 use std::unit_test::assert_eq;
+use sui::accumulator::{Self, AccumulatorRoot};
 use sui::balance;
 use sui::coin::{Self, Coin};
 use sui::sui::SUI;
@@ -290,6 +291,60 @@ fun redeem_then_receive_round_trip() {
     let balance = hikida::receive_coins_as_balance(&mut vault.id, vector[ticket]);
     assert_eq!(balance.value(), 100);
     balance::destroy_for_testing(balance);
+    scenario.return_to_sender(vault);
+    scenario.end();
+}
+
+//=== Settled funds ===
+//
+// The settled snapshot is written only by the system at consensus
+// settlement, which the unit VM never runs, so `settled_funds_value` always
+// reads zero here. These tests pin the zero path of all three settled
+// functions; the positive path is exercised on a network (see AUDIT.md).
+
+#[test]
+fun settled_balance_value_reads_zero_before_any_settlement() {
+    let mut scenario = test_scenario::begin(OWNER);
+    let vault_id = setup(&mut scenario);
+    accumulator::create_for_testing(scenario.ctx());
+
+    scenario.next_tx(OWNER);
+    let vault = scenario.take_from_sender_by_id<Vault>(vault_id);
+    let root = scenario.take_shared<AccumulatorRoot>();
+    assert_eq!(hikida::settled_balance_value<SUI>(&vault.id, &root), 0);
+    test_scenario::return_shared(root);
+    scenario.return_to_sender(vault);
+    scenario.end();
+}
+
+#[test]
+fun redeem_settled_balance_with_nothing_settled_is_zero() {
+    let mut scenario = test_scenario::begin(OWNER);
+    let vault_id = setup(&mut scenario);
+    accumulator::create_for_testing(scenario.ctx());
+
+    scenario.next_tx(OWNER);
+    let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
+    let root = scenario.take_shared<AccumulatorRoot>();
+    let balance = hikida::redeem_settled_balance<SUI>(&mut vault.id, &root);
+    assert_eq!(balance.value(), 0);
+    balance.destroy_zero();
+    test_scenario::return_shared(root);
+    scenario.return_to_sender(vault);
+    scenario.end();
+}
+
+#[test]
+fun redeem_settled_balance_and_send_funds_with_nothing_settled_is_noop() {
+    let mut scenario = test_scenario::begin(OWNER);
+    let vault_id = setup(&mut scenario);
+    accumulator::create_for_testing(scenario.ctx());
+
+    scenario.next_tx(OWNER);
+    let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
+    let root = scenario.take_shared<AccumulatorRoot>();
+    assert_eq!(hikida::redeem_settled_balance_and_send_funds<SUI>(&mut vault.id, &root, RECIPIENT), 0);
+    test_scenario::return_shared(root);
     scenario.return_to_sender(vault);
     scenario.end();
 }

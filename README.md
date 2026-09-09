@@ -3,7 +3,7 @@
 Thin, audited helpers for receiving coins sent to Sui object addresses and
 withdrawing object-accumulated funds — batch `Receiving<Coin>` handling,
 forwarding received value onward, and
-`redeem_funds(withdraw_funds_from_object(...))` in four small wrappers. The
+`redeem_funds(withdraw_funds_from_object(...))` in seven small wrappers. The
 verb names the source: `receive_*` takes `Coin` objects sent to the object,
 `redeem_*` takes funds accumulated on its address. Outgoing value always
 leaves as accumulator funds (`balance::send_funds`), never as a coin object.
@@ -29,12 +29,16 @@ has mutable access to the object can pull funds into or out of it.
 | `receive_coins_and_send_funds<Currency>(parent, coins, recipient): u64` | Receive the tickets and forward the combined value to `recipient`'s funds accumulator (`balance::send_funds`). Returns the value forwarded. |
 | `redeem_balance<Currency>(parent, value): Balance<Currency>` | Withdraw `value` of `Currency` accumulated on the object's address (`withdraw_funds_from_object` + `redeem_funds`). Call `.into_coin(ctx)` for a `Coin`. |
 | `redeem_balance_and_send_funds<Currency>(parent, value, recipient): u64` | Withdraw `value` and forward it to `recipient`'s funds accumulator. Returns the value forwarded. |
+| `settled_balance_value<Currency>(parent: &UID, root): u64` | Funds of `Currency` settled at the object's address as of the current consensus commit (`balance::settled_funds_value`). |
+| `redeem_settled_balance<Currency>(parent, root): Balance<Currency>` | Withdraw everything currently settled at the object's address. |
+| `redeem_settled_balance_and_send_funds<Currency>(parent, root, recipient): u64` | Withdraw everything currently settled and forward it to `recipient`'s funds accumulator. Returns the value forwarded. |
 
 ### Every function is total
 
 There are no error codes. Receiving no coins returns a zero balance; redeeming
-zero returns a zero balance without touching the accumulator; forwarding
-nothing forwards nothing and returns 0. Callers that
+zero, or redeeming settled funds when none have settled, returns a zero
+balance without touching the accumulator; forwarding nothing forwards nothing
+and returns 0. Callers that
 want strictness assert on the returned value. This matches the framework's own
 value-returning primitives (`balance::withdraw_all`, `pay::join_vec` over an
 empty vector, `balance::zero`), which are total and reserve
@@ -65,6 +69,9 @@ let coin = hikida::redeem_balance<SUI>(object.uid_mut(), amount).into_coin(ctx);
 // Forward accumulated funds to another address's accumulator:
 let sent = hikida::redeem_balance_and_send_funds<SUI>(object.uid_mut(), amount, recipient);
 
+// Take everything that has settled at the object's address (the crank case):
+let settled = hikida::redeem_settled_balance<SUI>(object.uid_mut(), &accumulator_root);
+
 // Convert coins stuck at an object's address into accumulator funds at that
 // same address, so canonical accumulator logic can take over:
 let forwarded = hikida::receive_coins_and_send_funds<SUI>(
@@ -83,6 +90,9 @@ Both deployments are immutable.
 
 **Note:** `redeem_*` depends on the `enable_object_funds_withdraw` protocol
 flag; on networks where it is disabled they abort with the framework's error.
+The settled snapshot is written only at consensus settlement, so the
+`*settled*` functions read zero in `sui move test`; their positive path is
+covered on a network.
 
 ## Security
 
@@ -96,7 +106,7 @@ The wrappers add no privilege beyond what the framework's `public_receive`,
 
 ```sh
 sui move build          # build
-sui move test           # run the test suite (12 tests)
+sui move test           # run the test suite (15 tests)
 sui move build --lint   # lint
 ```
 
