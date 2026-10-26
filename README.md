@@ -116,4 +116,4 @@ sui move build --lint   # lint
 
 ## License
 
-MIT — see [LICENSE](LICENSE). © Unconfirmed Labs, LLC.
+MIT — see [LICENSE](LICENSE). © Unconfirmed Labs, Inc.
