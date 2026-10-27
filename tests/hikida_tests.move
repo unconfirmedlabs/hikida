@@ -174,7 +174,6 @@ fun redeem_balance_partial() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     // Fund the vault address's accumulator with 100.
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
 
@@ -192,7 +191,6 @@ fun redeem_balance_full() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
 
     scenario.next_tx(OWNER);
@@ -233,7 +231,6 @@ fun redeem_balance_and_send_funds_forwards() {
     let sink_id = object::id(&sink);
     let sink_addr = sink_id.to_address();
     transfer::public_transfer(sink, OWNER);
-
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
 
     scenario.next_tx(OWNER);
@@ -272,7 +269,6 @@ fun redeem_then_receive_round_trip() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
 
     scenario.next_tx(OWNER);
