@@ -50,10 +50,8 @@ fun receive_coins_as_balance_single_coin() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     scenario.next_tx(OWNER);
     let coin_id = send_coin(&mut scenario, vault_addr, 100);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let ticket = test_scenario::receiving_ticket_by_id<Coin<SUI>>(coin_id);
@@ -69,12 +67,10 @@ fun receive_coins_as_balance_multiple_coins() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     scenario.next_tx(OWNER);
     let id1 = send_coin(&mut scenario, vault_addr, 10);
     let id2 = send_coin(&mut scenario, vault_addr, 20);
     let id3 = send_coin(&mut scenario, vault_addr, 30);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let tickets = vector[
@@ -94,10 +90,8 @@ fun receive_coins_as_balance_into_coin() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     scenario.next_tx(OWNER);
     let coin_id = send_coin(&mut scenario, vault_addr, 42);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let ticket = test_scenario::receiving_ticket_by_id<Coin<SUI>>(coin_id);
@@ -112,7 +106,6 @@ fun receive_coins_as_balance_into_coin() {
 fun receive_coins_as_balance_empty_vector_is_zero() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let tickets: vector<Receiving<Coin<SUI>>> = vector[];
@@ -130,11 +123,9 @@ fun receive_coins_and_send_funds_to_self_round_trip() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     scenario.next_tx(OWNER);
     let id1 = send_coin(&mut scenario, vault_addr, 15);
     let id2 = send_coin(&mut scenario, vault_addr, 25);
-
     scenario.next_tx(OWNER);
     {
         let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
@@ -146,7 +137,6 @@ fun receive_coins_and_send_funds_to_self_round_trip() {
         assert_eq!(forwarded, 40);
         scenario.return_to_sender(vault);
     };
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let balance = hikida::redeem_balance<SUI>(&mut vault.id, 40);
@@ -160,7 +150,6 @@ fun receive_coins_and_send_funds_to_self_round_trip() {
 fun receive_coins_and_send_funds_empty_is_noop() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let tickets: vector<Receiving<Coin<SUI>>> = vector[];
@@ -174,10 +163,8 @@ fun redeem_balance_partial() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     // Fund the vault address's accumulator with 100.
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let balance = hikida::redeem_balance<SUI>(&mut vault.id, 40);
@@ -192,9 +179,7 @@ fun redeem_balance_full() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let balance = hikida::redeem_balance<SUI>(&mut vault.id, 100);
@@ -210,7 +195,6 @@ fun redeem_balance_full() {
 fun redeem_balance_zero_value_is_zero() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let balance = hikida::redeem_balance<SUI>(&mut vault.id, 0);
@@ -227,22 +211,18 @@ fun redeem_balance_and_send_funds_forwards() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     // A second vault, whose address stands in for the recipient.
     let sink = Vault { id: object::new(scenario.ctx()) };
     let sink_id = object::id(&sink);
     let sink_addr = sink_id.to_address();
     transfer::public_transfer(sink, OWNER);
-
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
-
     scenario.next_tx(OWNER);
     {
         let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
         assert_eq!(hikida::redeem_balance_and_send_funds<SUI>(&mut vault.id, 60, sink_addr), 60);
         scenario.return_to_sender(vault);
     };
-
     scenario.next_tx(OWNER);
     let mut sink = scenario.take_from_sender_by_id<Vault>(sink_id);
     let balance = hikida::redeem_balance<SUI>(&mut sink.id, 60);
@@ -256,7 +236,6 @@ fun redeem_balance_and_send_funds_forwards() {
 fun redeem_balance_and_send_funds_zero_is_noop() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     assert_eq!(hikida::redeem_balance_and_send_funds<SUI>(&mut vault.id, 0, RECIPIENT), 0);
@@ -272,9 +251,7 @@ fun redeem_then_receive_round_trip() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     let vault_addr = vault_id.to_address();
-
     balance::send_funds(balance::create_for_testing<SUI>(100), vault_addr);
-
     scenario.next_tx(OWNER);
     let coin_id;
     {
@@ -284,7 +261,6 @@ fun redeem_then_receive_round_trip() {
         transfer::public_transfer(coin, vault_addr);
         scenario.return_to_sender(vault);
     };
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let ticket = test_scenario::receiving_ticket_by_id<Coin<SUI>>(coin_id);
@@ -307,7 +283,6 @@ fun settled_balance_value_reads_zero_before_any_settlement() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     accumulator::create_for_testing(scenario.ctx());
-
     scenario.next_tx(OWNER);
     let vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let root = scenario.take_shared<AccumulatorRoot>();
@@ -322,7 +297,6 @@ fun redeem_settled_balance_with_nothing_settled_is_zero() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     accumulator::create_for_testing(scenario.ctx());
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let root = scenario.take_shared<AccumulatorRoot>();
@@ -339,7 +313,6 @@ fun redeem_settled_balance_and_send_funds_with_nothing_settled_is_noop() {
     let mut scenario = test_scenario::begin(OWNER);
     let vault_id = setup(&mut scenario);
     accumulator::create_for_testing(scenario.ctx());
-
     scenario.next_tx(OWNER);
     let mut vault = scenario.take_from_sender_by_id<Vault>(vault_id);
     let root = scenario.take_shared<AccumulatorRoot>();
